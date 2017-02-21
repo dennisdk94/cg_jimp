@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Edição de imagem</title>
+
+
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+	<script src="https://cdn.rawgit.com/oliver-moran/jimp/v0.2.27/browser/lib/jimp.min.js"></script>
+
+	<script type="text/javascript">
+	  var imagem_fundo = null;
+	  var imagem_frente = null;
+	  var imagem_frente_th = null;
+
+
+      function mostrarImagemFundo(element) {
+        var arquivo = element.files[0];
+        var reader = new FileReader();
+        reader.readAsArrayBuffer(arquivo);
+        reader.addEventListener('load', function(){
+          Jimp.read(this.result)
+            .then(function(imagem){
+              imagem = imagem.resize(320, 200);
+              imagem_fundo = imagem;
+              exibirImagem1(imagem);
+            })
+            .catch(function(erro){
+              console.log('Não foi possível processar os dados da imagem.');
+              console.log(erro);
+            });
+
+        });
+      } function mostrarImagemFrente(element) {
+        var arquivo = element.files[0];
+        var reader = new FileReader();
+        reader.readAsArrayBuffer(arquivo);
+        reader.addEventListener('load', function(){
+          Jimp.read(this.result)
+            .then(function(imagem){
+              imagem = imagem.resize(320, 200);
+              imagem_frente = imagem;
+              exibirImagem2(imagem);
+            })
+            .catch(function(erro){
+              console.log('Não foi possível processar os dados da imagem.');
+              console.log(erro);
+            });
+
+        });
+      }
+
+
+      function exibirImagem1(imagem) {
+        imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+            var img = document.getElementById('display1');
+            img.setAttribute('src', src);
+          });
+      }
+      function exibirImagem2(imagem) {
+        imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+            var img = document.getElementById('display2');
+            img.setAttribute('src', src);
+          });
+      }
+      function exibirImagem3(imagem) {
+        imagem.getBase64(Jimp.MIME_JPEG, function(err, src){
+            var img = document.getElementById('display-resultado');
+            img.setAttribute('src', src);
+          });
+      }
+
+      function threshold_filter(v, t) {
+        if (v <= t) {
+          return 0;
+        } else {
+          return 255;
+        }
+      }
+
+      function aplicarThreshold(element) {
+
+        var t = parseInt(element.value);
+        var w = imagem_frente.bitmap.width;
+        var h = imagem_frente.bitmap.height;
+
+        var imagem = imagem_frente.clone();
+
+        for(var i = 0; i < w; i++) {
+          for(var j = 0; j < h; j++) {
+            var cor = imagem.getPixelColor(i, j);
+          
+            var rgba = Jimp.intToRGBA(cor);
+            rgba.r = threshold_filter(rgba.r, t);
+            
+            rgba.g = rgba.r;
+            rgba.b = rgba.r;
+
+            var hex = Jimp.rgbaToInt(rgba.r, rgba.g, rgba.b, rgba.a);
+            imagem.setPixelColor(hex, i, j);
+            
+          }
+        }
+        imagem_frente_th = imagem;
+        juntarImagens(element);
+      }
+
+
+      function juntarImagens(element) {
+      	var imagem = imagem_frente_th.clone();
+      	var t = parseInt(element.value);
+        var w = imagem.bitmap.width;
+        var h = imagem.bitmap.height;
+
+        for(var i=0; i<w; i++) {
+        	for(var j=0; j<h; j++){
+        		var cor = imagem.getPixelColor(i, j);
+        		var rgba = Jimp.intToRGBA(cor);
+	            rgba.r = threshold_filter(rgba.r, t);
+
+	            if(rgba.r == 255){
+	            	var hex = imagem_fundo.getPixelColor(i, j);
+	            	imagem.setPixelColor(hex, i, j);
+	            }
+        	}
+        }
+        exibirImagem3(imagem);
+      }
+	  
+	</script>
+</head>
+<body>
+	<div class="row">
+		<div class="col-md-4">
+			<p>Escolha um arquivo de imagem</p>
+			<input type="file" onchange="mostrarImagemFundo(this)">
+			<img id="display1">
+		</div>
+		<div class="col-md-4">
+			<p>Escolha um arquivo de imagem</p>
+			<input type="file" onchange="mostrarImagemFrente(this)">
+			<img id="display2">
+		</div>
+		<div class="col-md-4">
+			<p>resultado</p>
+			<input type="number" value = "0" onchange="aplicarThreshold(this)">
+			<img id="display-resultado">
+		</div>
+	</div>
+</body>
+</html>
